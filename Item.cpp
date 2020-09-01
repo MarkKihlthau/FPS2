@@ -20,9 +20,9 @@ void Item::set_weapon(string type)
 {
 	return;
 }
-string Item::get_name()
+wstring Item::get_name()
 {
-	return "";
+	return L"";
 }
 int Item::get_damage()
 {

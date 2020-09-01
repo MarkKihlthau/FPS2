@@ -11,7 +11,7 @@ public:
 
 	//Weapon
 	virtual void set_weapon(string type);
-	virtual string get_name();
+	virtual wstring get_name();
 	virtual int get_damage();
 	virtual int get_capacity();
 	virtual int get_reload();

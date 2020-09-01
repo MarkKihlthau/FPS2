@@ -1,6 +1,6 @@
 #pragma once
 #include <stdlib.h>
-#include <time.h> 
+#include <chrono> 
 using namespace std;
 
 class Enemy

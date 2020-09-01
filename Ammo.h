@@ -6,13 +6,13 @@ public:
 	Ammo() {}
 	~Ammo() {}
 
-	string name = "Null";
+	wstring name = L"Null";
 	int amount = 0;
 
 	int pickup();
 	void reloadable();
 	void set_ammo(string type);
-	string get_name();
+	wstring get_name();
 	int get_amount();
 };
 
@@ -23,9 +23,9 @@ int Ammo::pickup()
 
 void Ammo::reloadable()
 {
-	if (Ammo::name == "9mm" && Weapon::name == "Pistol")
+	if (Ammo::name == L"9mm" && Weapon::name == L"Pistol")
 		capacity = capacity + amount;
-	else if (Ammo::name == "Battery" && Weapon::name == "RailGun")
+	else if (Ammo::name == L"Battery" && Weapon::name == L"RailGun")
 		capacity = capacity + amount;
 }
 
@@ -33,12 +33,12 @@ void Ammo::set_ammo(string type)
 {
 	if (type == "9mm")
 	{
-		name = "9mm";
+		name = L"9mm";
 		amount = 32;
 	}
 	else if (type == "Battery")
 	{
-		name = "Battery";
+		name = L"Battery";
 		amount = 16;
 	}
 	else
@@ -47,7 +47,7 @@ void Ammo::set_ammo(string type)
 	}
 }
 
-string Ammo::get_name()
+wstring Ammo::get_name()
 {
 	return name;
 }

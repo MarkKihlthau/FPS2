@@ -9,12 +9,12 @@ public:
 	virtual int pickup();
 	virtual void reloadable();
 	void set_weapon(string type);
-	string get_name();
+	wstring get_name();
 	int get_damage();
 	int get_capacity();
 	int get_reload();
 
-	string name = "Null";
+	wstring name = L"Null";
 	int damage = 0;
 	int capacity = 0;
 	int reload = 0;

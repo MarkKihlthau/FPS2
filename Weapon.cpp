@@ -14,14 +14,14 @@ void Weapon::set_weapon(string type)
 {
 	if (type == "Pistol")
 	{
-		name = "Pistol";
-		damage = 5;
+		name = L"Pistol";
+		damage = 100;
 		capacity = 16;
 		reload = 32;
 	}
 	else if (type == "RailGun")
 	{
-		name = "RailGun";
+		name = L"RailGun";
 		damage = 12;
 		capacity = 8;
 		reload = 16;
@@ -32,7 +32,7 @@ void Weapon::set_weapon(string type)
 	}
 }
 
-string Weapon::get_name()
+wstring Weapon::get_name()
 {
 	return name;
 }
