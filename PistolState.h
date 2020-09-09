@@ -1,11 +1,14 @@
 #pragma once
 #include "Weapon.h"
+#include "SuperPistolState.h"
 
 class PistolState : public Weapon
 {
 public:
 	PistolState() {};
 	~PistolState() {};
+
+	void ChangeState(Item*&, Weapon_Type);
 
 	int pickup() override;
 	wstring get_name() override;
@@ -19,6 +22,25 @@ private:
 	int capacity = 48;
 	int reload = 16;
 };
+
+void PistolState::ChangeState(Item*& state, Weapon_Type type)
+{
+	switch (type)
+	{
+	case (Pistol):
+	{
+		state = new PistolState;
+	}break;
+	case (Super_Pistol):
+	{
+		state = new SuperPistolState;
+	}break;
+	default:
+	{
+		state = new PistolState;
+	}
+	}
+}
 
 int PistolState::pickup()
 {

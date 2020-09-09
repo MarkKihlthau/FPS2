@@ -77,6 +77,7 @@ int reload = 0;
 int kill_count = 49;
 Item* WeaponInventory[2] = { Item::Create("Weapon"), Item::Create("Weapon") };
 Item* WeaponInHand = Item::Create("Weapon");
+int WeaponNumber;
 
 wstring map; //string that holds the map
 wstring map_copy; //string that holds a copy of the original map
@@ -148,8 +149,15 @@ int main()
 		//Display User Interface
 		UserInterface(screen);
 
-		if (kill_count >= 50)
-			WeaponInventory[1]->ChangeState(WeaponInventory[1], Item::Super_Pistol);
+		if (kill_count >= 50 && WeaponInventory[0]->get_name() == L"9mm Pistol")
+		{
+			WeaponInventory[0]->ChangeState(WeaponInventory[0], Item::Super_Pistol);
+			WeaponInHand = WeaponInventory[0];
+			wname = WeaponInHand->get_name();
+			damage = WeaponInHand->get_damage();
+			capacity = WeaponInHand->get_capacity();
+			reload = WeaponInHand->get_reload();
+		}
 
 		//Display Frame 
 		screen[nScreenWidth * nScreenHeight - 1] = '/0';
@@ -247,9 +255,15 @@ void Controls(float fElapsedTime, wstring map, wchar_t* screen)
 		if ((tWeaponSwitch - tBegin) + chrono::milliseconds(200) <= chrono::system_clock::now() - tBegin)
 		{
 			if (WeaponInHand == WeaponInventory[0])
+			{
 				WeaponInHand = WeaponInventory[1];
+				WeaponNumber = 2;
+			}
 			else
+			{
 				WeaponInHand = WeaponInventory[0];
+				WeaponNumber = 1;
+			}
 
 			wname = WeaponInHand->get_name();
 			damage = WeaponInHand->get_damage();
@@ -595,7 +609,7 @@ void UserInterface(wchar_t* screen)
 	for (int i = 0; i < HealthBar.length(); i++)
 		screen[(nScreenWidth * 1) + i] = HealthBar[i];
 
-	WeaponName += wname;
+	WeaponName += wname + L", Weapon: " + to_wstring(WeaponNumber);
 	for (int i = 0; i < WeaponName.length(); i++)
 		screen[(nScreenWidth * 2) + i] = WeaponName[i];
 
@@ -774,7 +788,19 @@ void WeaponArt(wchar_t* screen)
 		screen[4741 - 2520] = '+';
 	}
 
-		
+	if (wname == L"Super Pistol")
+	{
+		wstring art;
+
+		art =  L"       ||      ";
+		art += L"+--------------+";
+		art += L"|              |";
+		art += L"|              |";
+		art += L"|              |";
+		art += L"|              |";
+		art += L"+--------------+";
+	}
+	
 }
 
 void MoveEnemy(int id)
