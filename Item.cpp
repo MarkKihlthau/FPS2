@@ -15,7 +15,10 @@ Item* Item::Create(string type)
 	if (type == "Ammo")
 		return new Ammo();
 }
-
+void Item::ChangeState(Item*&, Weapon_Type type)
+{
+	return;
+}
 void Item::set_weapon(string type)
 {
 	return;

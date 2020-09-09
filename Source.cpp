@@ -1,5 +1,6 @@
 //Modified from existing code found here: https://github.com/OneLoneCoder/CommandLineFPS
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -8,6 +9,7 @@
 #include <time.h>
 #include <cstdlib>
 #include "Item.h"
+#include "Weapon.h"
 #include "Enemy.h"
 using namespace std;
 
@@ -20,77 +22,65 @@ float fPlayerX = 3.0f; //player X position
 float fPlayerY = 14.0f; //player Y position
 float fPlayerA = 1.5f; //player look Angle
 
-int nMapHeight = 16; //Map Size
-int nMapWidth = 16;
+int nMapHeight = 0; //Map Size
+int nMapWidth = 0;
 
-float fFOV = 3.14159 / 4; //field of view
-float fDepth = 16.0f;
-float fSpeed = 5.0f; //player movement speed
+const float fFOV = 3.14159 / 4; //field of view
+const float fDepth = 16.0f;
+const float fSpeed = 5.0f; //player movement speed
 
 void Controls(float, wstring, wchar_t*);
 void Environment(wchar_t*, wstring);
-void MiniMap(wchar_t*);
+//void MiniMap(wchar_t*);
 void TacticalMap(wchar_t*);
 void CalculateRows(wchar_t*, wstring&, int, int, int);
+void DirectionalArrow(wstring&, int, int);
 void PrintTacticalMap(wchar_t*, wstring&, int, int);
 void UserInterface(wchar_t*);
-void CheckWeaponName();
 void WeaponArt(wchar_t*);
-void MoveEnemy();
-void EnemyMoveHandler();
+void MoveEnemy(int);
+void EnemyMoveHandler(int id);
+void SpawnEnemy(int);
 void LoadItems();
 void PlayerPickup(int, Item*);
 void ReloadMap();
 void PlaceItem(int, int, Type);
 void PlaceAllItems();
 bool SearchItems(int, int&, int&);
+int FindHitEnemyID(int, int);
 
-int item_pickup; //currently unused
-int items[16][16]; //array for item location
-int itemPosition[16][16]; //array for item map position values
-Item* itemTypes[16][16]; //array for item objects
+//Items
+Item* itemTypes[1000][1000]; //array for item objects
+int items[1000][1000]; //holds the integer type value for item
+int itemPosition[1000][1000]; //array for item map position values
 
-int enemies[16][16]; //array for enemy location
-int GameLoopCount = 0;
-const int ActionLoopCount = 40; //loop count for how often player can shoot
-float bullet;
 int HitX; //X location of gunshot hit
 int HitY; //Y location of gunshot hit
 bool ReadyShot;
 
-Enemy E1; //Ghost enemy
-int E1_hp = E1.get_health();
-int EnemyX = 9; //Enemy starting X position
-int EnemyY = 6; //Enemy starting Y position
+Enemy* Enemies[1000];
+int CurrentSpawned = 0;
+
+//timers
 chrono::time_point<chrono::system_clock> tBegin = chrono::system_clock::now();
-chrono::time_point<chrono::system_clock> tStrike = chrono::system_clock::now();
-chrono::time_point<chrono::system_clock> tEnemyMove = chrono::system_clock::now();
 chrono::time_point<chrono::system_clock> tShoot = chrono::system_clock::now();
 chrono::time_point<chrono::system_clock> tAnimation = chrono::system_clock::now();
-chrono::time_point<chrono::system_clock> tp = chrono::system_clock::now();
-
-//Strings for weapon name
-wstring wname = L"";
-wchar_t w1[10] = L"None";
-wchar_t w2[10] = L"Pistol";
-wchar_t w3[10] = L"RailGun";
+chrono::time_point<chrono::system_clock> tNewSpawn = chrono::system_clock::now();
+chrono::time_point<chrono::system_clock> tWeaponSwitch = chrono::system_clock::now();
 
 //Player Stats
-int health = 1;
+int health = 50;
+wstring wname = L"";
 int damage = 0;
-wchar_t weapon[10];
 int capacity = 0;
 int reload = 0;
-bool victory = false;
-bool displayVictory = false;
-
-int hit_enemy = 0;
-int EnemyMoveCount = 0; //Counter for enemy movement
-int EnemyMoveSpeed = 200; //How fast the enemy moves
+int kill_count = 49;
+Item* WeaponInventory[2] = { Item::Create("Weapon"), Item::Create("Weapon") };
+Item* WeaponInHand = Item::Create("Weapon");
 
 wstring map; //string that holds the map
 wstring map_copy; //string that holds a copy of the original map
-wstring minimap; //string that holds minimap display
+//wstring minimap; //string that holds minimap display
 
 int main()
 {
@@ -103,28 +93,19 @@ int main()
 	srand(time(NULL)); //For random number generation
 
 	//Load map
-	map += L"################";
-	map += L"#..............#";
-	map += L"#..............#";
-	map += L"#..............#";
-	map += L"#......####....#";
-	map += L"#....H.........#";
-	map += L"#..............#";
-	map += L"#..............#"; //7
-	map += L"#...######.....#";
-	map += L"#..............#";
-	map += L"#........#######";
-	map += L"#..H.........H.#";
-	map += L"#..............#";
-	map += L"#############..#";
-	map += L"#.........H...W#";
-	map += L"################"; //15
-
+	wifstream file("Map2.txt");
+	wstring line;
+	wstring file_contents;
+	while (getline(file, line))
+	{
+		nMapWidth = line.length();
+		file_contents += line;
+		nMapHeight++;
+	}
+	map = file_contents;
 	map_copy = map;
 
 	PlaceAllItems(); //places all items on the map based on map string
-
-	enemies[EnemyX][EnemyY] = 1;
 
 	auto TimeP1 = chrono::system_clock::now();
 	auto TimeP2 = chrono::system_clock::now();
@@ -146,9 +127,14 @@ int main()
 		//Picks up items based on player position
 		LoadItems();
 
+		if (((tNewSpawn - tBegin) + chrono::seconds(3) <= chrono::system_clock::now() - tBegin) && CurrentSpawned < 100)
+			SpawnEnemy(CurrentSpawned);
+		
 		//Handles enemy movement and attacks
-		EnemyMoveHandler();
-
+		ReloadMap();
+		for (int i = 0; i < CurrentSpawned; i++)
+			EnemyMoveHandler(i);
+		
 		//Dispay walls and shading
 		Environment(screen, map);
 
@@ -156,28 +142,14 @@ int main()
 		WeaponArt(screen);
 
 		//Display Stats
-		//swprintf_s(screen, 40, L"X=%3.2f, Y=%3.2f, A%3.2f FPS=%3.2f", fPlayerX, fPlayerY, fPlayerA, 1.0f / fElapsedTime);
-		CheckWeaponName();
-		if (victory == false)
-		{
-			//swprintf_s(screen, 110, L"Health:%d Weapon:%s Capacity:%d/Reload:%d HitX:%d HitY:%d GhostHP:%d GX:%d GY:%d",
-				//health, weapon, capacity, reload, HitX, HitY, E1_hp, EnemyX, EnemyY);
-		}
-		else
-		{
-			if (displayVictory == false)
-			{
-				auto TimeP4 = chrono::system_clock::now();
-				chrono::duration<float> elapsedGameTime = TimeP4 - TimeP3;
-				fElapsedGameTime = elapsedGameTime.count();
-				displayVictory = true;
-			}
-			swprintf_s(screen, 100, L"You Win! Elapsed Time:%3.2f", fElapsedGameTime);
-		}
-
-		//Display Mini-Map
-		TacticalMap(screen);
+		swprintf_s(screen, 50, L"X=%3.2f, Y=%3.2f, A%3.2f FPS=%3.2f, Spawns:%d", 
+			fPlayerX, fPlayerY, cosf(fPlayerA), 1.0f / fElapsedTime, CurrentSpawned);
+		
+		//Display User Interface
 		UserInterface(screen);
+
+		if (kill_count >= 50)
+			WeaponInventory[1]->ChangeState(WeaponInventory[1], Item::Super_Pistol);
 
 		//Display Frame 
 		screen[nScreenWidth * nScreenHeight - 1] = '/0';
@@ -188,12 +160,19 @@ int main()
 		
 	} //end game loop
 
-	cout << "You died.";
-	char fail;
+	auto TimeP4 = chrono::system_clock::now();
+	chrono::duration<float> elapsedGameTime = TimeP4 - TimeP3;
+	fElapsedGameTime = elapsedGameTime.count();
+	cout << "You died.\n";
+	cout << "Your kills: " << kill_count << endl;
+	cout << "Your in-game time: " << fElapsedGameTime << " seconds.\n";
+	cout << "Close window to exit.";
+	char exit;
 	while (1)
 	{
-		cin >> fail;
+		cin >> exit;
 	}
+	
 	return 0;
 }
 
@@ -236,6 +215,51 @@ void Controls(float fElapsedTime, wstring map, wchar_t* screen)
 		}
 	}
 
+	//Handle Strafing
+	if (GetAsyncKeyState((unsigned short)'Q') & 0x8000)
+	{
+		fPlayerX += sinf(fPlayerA - 90) * fSpeed * fElapsedTime;
+		fPlayerY += cosf(fPlayerA - 90) * fSpeed * fElapsedTime;
+
+		//Collision Detection
+		if (map[(int)fPlayerY * nMapWidth + (int)fPlayerX] == '#')
+		{
+			fPlayerX -= sinf(fPlayerA - 90) * fSpeed * fElapsedTime;
+			fPlayerY -= cosf(fPlayerA - 90) * fSpeed * fElapsedTime;
+		}
+	}
+	if (GetAsyncKeyState((unsigned short)'E') & 0x8000)
+	{
+		fPlayerX += sinf(fPlayerA + 90) * fSpeed * fElapsedTime;
+		fPlayerY += cosf(fPlayerA + 90) * fSpeed * fElapsedTime;
+
+		//Collision Detection
+		if (map[(int)fPlayerY * nMapWidth + (int)fPlayerX] == '#')
+		{
+			fPlayerX -= sinf(fPlayerA + 90) * fSpeed * fElapsedTime;
+			fPlayerY -= cosf(fPlayerA + 90) * fSpeed * fElapsedTime;
+		}
+	}
+
+	//Handle Weapon Switch
+	if (GetKeyState((unsigned short)'F') & 0x8000)
+	{
+		if ((tWeaponSwitch - tBegin) + chrono::milliseconds(200) <= chrono::system_clock::now() - tBegin)
+		{
+			if (WeaponInHand == WeaponInventory[0])
+				WeaponInHand = WeaponInventory[1];
+			else
+				WeaponInHand = WeaponInventory[0];
+
+			wname = WeaponInHand->get_name();
+			damage = WeaponInHand->get_damage();
+			capacity = WeaponInHand->get_capacity();
+			reload = WeaponInHand->get_reload();
+
+			tWeaponSwitch = chrono::system_clock::now();
+		}
+	}
+
 	//Handle Shooting
 	if ((tShoot - tBegin) + chrono::milliseconds(500) <= chrono::system_clock::now() - tBegin)
 		ReadyShot = true;
@@ -247,10 +271,8 @@ void Controls(float fElapsedTime, wstring map, wchar_t* screen)
 		if (capacity > 0 && ReadyShot)
 		{
 			capacity = capacity - 1;
-			//GameLoopCount = 0;
-			hit_enemy = 0;
 			
-			bullet = fPlayerA;
+			float bullet = fPlayerA;
 			float fDistanceTo = 0;
 			bool bHitWall = false;
 			bool bHitEnemy = false;
@@ -283,9 +305,11 @@ void Controls(float fElapsedTime, wstring map, wchar_t* screen)
 					else if (map[HitY * nMapWidth + HitX] == 'X')
 					{
 						bHitEnemy = true;
-						hit_enemy = 1;
-						E1.hit(damage);
-						E1_hp = E1.get_health();
+						//hit_enemy = 1;
+						int id = FindHitEnemyID(HitX, HitY);
+						Enemies[id]->hit(damage);
+						if (Enemies[id]->alive() == false)
+							kill_count++;
 						break;
 
 					}
@@ -299,7 +323,7 @@ void Controls(float fElapsedTime, wstring map, wchar_t* screen)
 	//Handle Reload
 	if (GetAsyncKeyState((unsigned short)'R') & 0x8000)
 	{
-		capacity = 16;
+		capacity = WeaponInHand->get_reload();
 	}
 }
 
@@ -403,7 +427,7 @@ void Environment(wchar_t* screen, wstring map)
 
 }
 
-void MiniMap(wchar_t* screen)
+/*void MiniMap(wchar_t* screen)
 {
 	map = L""; //reset map
 	map += L"################";
@@ -453,12 +477,12 @@ void MiniMap(wchar_t* screen)
 	
 
 	
-}
+}*/
 
 void TacticalMap(wchar_t* screen)
 {
-	int nTacticalMapWidth = 13; //11
-	int nTacticalMapHeight = 9; //7
+	int nTacticalMapWidth = 13;
+	int nTacticalMapHeight = 9;
 
 	wstring TacticalMap = L"";
 	for (int i = 0; i <= nTacticalMapHeight; i++)
@@ -476,7 +500,7 @@ void TacticalMap(wchar_t* screen)
 		CalculateRows(screen, TacticalMap, nTacticalMapWidth, (nMapCenterRow + i), i);
 		CalculateRows(screen, TacticalMap, nTacticalMapWidth, (nMapCenterRow - i), (-1 * i));
 	}
-
+	DirectionalArrow(TacticalMap, nTacticalMapWidth, nTacticalMapHeight);
 	PrintTacticalMap(screen, TacticalMap, nTacticalMapWidth, nTacticalMapHeight);
 }
 
@@ -512,12 +536,26 @@ void CalculateRows(wchar_t* screen, wstring &TacticalMap, int nTacticalMapWidth,
 	}
 }
 
+void DirectionalArrow(wstring &TacticalMap, int nTacticalMapWidth, int nTacticalMapHeight)
+{
+	int center = (nTacticalMapWidth) * (nTacticalMapHeight / 2 + 1) + (nTacticalMapWidth / 2);
+	
+	if (cosf(fPlayerA) >= 0.5)
+		TacticalMap[center + nTacticalMapWidth] = 0x2193; //downwards arrow
+	else if (cosf(fPlayerA) <= -0.5)
+		TacticalMap[center - nTacticalMapWidth] = 0x2191; //upwards arrow
+	else if (sinf(fPlayerA) >= 0.5)
+		TacticalMap[center + 1] = 0x2190; //leftwards arrow
+	else if (sinf(fPlayerA) <= -0.5)
+		TacticalMap[center - 1] = 0x2192; //rightwards arrow
+}
+
 void PrintTacticalMap(wchar_t* screen, wstring &TacticalMap, int nTacticalMapWidth, int nTacticalMapHeight)
 {
 	for (int row = 1; row <= nTacticalMapHeight; row++)
 	{
 		for (int i = 0; i < nTacticalMapWidth; i++)
-			screen[nScreenWidth * (18 + row) + i] = TacticalMap[(nTacticalMapWidth * (row + 1) - 1) - i];
+			screen[nScreenWidth * (7 + row) + (i + 0)] = TacticalMap[(nTacticalMapWidth * (row + 1) - 1) - i];
 	}
 }
 
@@ -526,28 +564,29 @@ void UserInterface(wchar_t* screen)
 	wstring HealthBar = L"Health:";
 	wstring WeaponName = L"Weapon:";
 	wstring Ammo = L"Ammo:";
+	wstring Kills = L"Kills:";
 
 	for (int i = 1; i < 8; i++)
 		for (int j = 0; j < 30; j++)
 			screen[(nScreenWidth * i) + j] = 0x25A1;
 
-	if (0 < health && health < 10)
+	if (0 < health && health <= 10)
 		HealthBar += L"*";
-	if (10 < health && health < 20)
+	if (10 < health && health <= 20)
 		HealthBar += L"**";
-	if (20 < health && health < 30)
+	if (20 < health && health <= 30)
 		HealthBar += L"***";
-	if (30 < health && health < 40)
+	if (30 < health && health <= 40)
 		HealthBar += L"****";
-	if (40 < health && health < 50)
+	if (40 < health && health <= 50)
 		HealthBar += L"*****";
-	if (50 < health && health < 60)
+	if (50 < health && health <= 60)
 		HealthBar += L"******";
-	if (60 < health && health < 70)
+	if (60 < health && health <= 70)
 		HealthBar += L"*******";
-	if (70 < health && health < 80)
+	if (70 < health && health <= 80)
 		HealthBar += L"********";
-	if (80 < health && health < 90)
+	if (80 < health && health <= 90)
 		HealthBar += L"*********";
 	if (90 < health && health <= 100)
 		HealthBar += L"**********";
@@ -564,22 +603,18 @@ void UserInterface(wchar_t* screen)
 	for (int i = 0; i < Ammo.length(); i++)
 		screen[(nScreenWidth * 3) + i] = Ammo[i];
 
-}
+	Kills += to_wstring(kill_count);
+	for (int i = 0; i < Kills.length(); i++)
+		screen[(nScreenWidth * 4) + i] = Kills[i];
 
-void CheckWeaponName()
-{
-	if (wname == L"")
-		wcscpy_s(weapon, w1);
-	else if (wname == L"Pistol")
-		wcscpy_s(weapon, w2);
-	else if (wname == L"RailGun")
-		wcscpy_s(weapon, w3);
+	TacticalMap(screen);
+
 }
 
 void WeaponArt(wchar_t* screen)
 {
 	
-	if (wname == L"Pistol") //ready pistol
+	if (wname == L"9mm Pistol") //ready pistol
 	{
 		short shadeHand = 0x2588;
 		short shadeGun = 0x2592;
@@ -639,7 +674,7 @@ void WeaponArt(wchar_t* screen)
 			screen[i] = shadeGun;
 	}
 	
-	if (wname == L"Pistol" && !ReadyShot && 
+	if (wname == L"9mm Pistol" && !ReadyShot && 
 		(tAnimation - tBegin) + chrono::milliseconds(300) <= chrono::system_clock::now() - tBegin) //fired pistol
 	{
 		short shadeHand = 0x2588;
@@ -742,7 +777,7 @@ void WeaponArt(wchar_t* screen)
 		
 }
 
-void MoveEnemy()
+void MoveEnemy(int id)
 {
 	int moveX = (rand() % 2);
 	int moveY = (rand() % 2);
@@ -750,63 +785,97 @@ void MoveEnemy()
 
 	if (flip == 0)
 	{
-		EnemyX = EnemyX + moveX;
-		EnemyY = EnemyY + moveY;
+		Enemies[id]->set_X(Enemies[id]->get_X() + moveX);
+		Enemies[id]->set_Y(Enemies[id]->get_Y() + moveY);
+
+		if (map[(nMapWidth * Enemies[id]->get_Y()) + Enemies[id]->get_X()] == '#') //check if in wall
+		{
+			Enemies[id]->set_X(Enemies[id]->get_X() - moveX);
+			Enemies[id]->set_Y(Enemies[id]->get_Y() - moveY);
+		}
 	}
 	else
 	{
-		EnemyX = EnemyX - moveX;
-		EnemyY = EnemyY - moveY;
+		Enemies[id]->set_X(Enemies[id]->get_X() - moveX);
+		Enemies[id]->set_Y(Enemies[id]->get_Y() - moveY);
+
+		if (map[(nMapWidth * Enemies[id]->get_Y()) + Enemies[id]->get_X()] == '#') //check if in wall
+		{
+			Enemies[id]->set_X(Enemies[id]->get_X() + moveX);
+			Enemies[id]->set_Y(Enemies[id]->get_Y() + moveY);
+		}
 	}
 
-	if (EnemyX < 1)
-		EnemyX = 1;
-	else if (EnemyX > (nMapWidth - 1))
-		EnemyX = (nMapWidth - 1);
+	//boundary check
+	if (Enemies[id]->get_X() < 2)
+		Enemies[id]->set_X(2);
+	else if (Enemies[id]->get_X() > (nMapWidth - 2))
+		Enemies[id]->set_X(nMapWidth - 2);
 
-	if (EnemyY < 1)
-		EnemyY = 1;
-	else if (EnemyY > (nMapHeight - 1))
-		EnemyY = (nMapHeight - 1);
+	if (Enemies[id]->get_Y() < 2)
+		Enemies[id]->set_Y(2);
+	else if (Enemies[id]->get_Y() > (nMapHeight - 2))
+		Enemies[id]->set_Y(nMapHeight - 2);
 
-	return;
 }
 
-void EnemyMoveHandler() 
+void EnemyMoveHandler(int id) 
 {
-	ReloadMap();
-
-	if ((tEnemyMove - tBegin) + chrono::seconds(1) <= chrono::system_clock::now() - tBegin)
+	if (Enemies[id]->alive() == true)
 	{
-		MoveEnemy();
-		tEnemyMove = chrono::system_clock::now();
-	}
+		if ((Enemies[id]->get_tEnemyMove() - tBegin) + chrono::seconds(1) <= chrono::system_clock::now() - tBegin)
+		{
+			MoveEnemy(id);
+			Enemies[id]->set_tEnemyMove(chrono::system_clock::now());
+		}
 
-	int Enemycurrpos = (nMapWidth * EnemyY) + EnemyX;
-	int Playercurrpos = (nMapWidth * (int)fPlayerY) + (int)fPlayerX;
+		int Enemycurrpos = (nMapWidth * Enemies[id]->get_Y()) + Enemies[id]->get_X();
+		int Playercurrpos = (nMapWidth * (int)fPlayerY) + (int)fPlayerX;
 
-	if (victory == false)
 		map[Enemycurrpos] = 'X';
-	else
-	{
-		map[Enemycurrpos] = '.';
-	}
 
 		if (Enemycurrpos == Playercurrpos)
 		{
-			if ((tStrike - tBegin) + chrono::seconds(1) <= chrono::system_clock::now() - tBegin)
+			if ((Enemies[id]->get_tStrike() - tBegin) + chrono::seconds(1) <= chrono::system_clock::now() - tBegin)
 			{
-				health = health - E1.strike();
-				tStrike = chrono::system_clock::now();
+				health = health - Enemies[id]->strike();
+				Enemies[id]->set_tStrike(chrono::system_clock::now());
 			}
 		}
-		if (E1.alive() == false)
-		{
-			enemies[EnemyX][EnemyY] = 0;
-			victory = true;
-		}
+	}
+}
+
+void SpawnEnemy(int id)
+{
+	int x_pos, y_pos;
+
+	do //check if in wall
+	{
+		x_pos = rand() % nMapWidth;
+		y_pos = rand() % nMapHeight;
+
+	} while (map[(nMapWidth * y_pos) + x_pos] == '#');
+
+	Enemies[id] = new Enemy(id);
+	Enemies[id]->set_X((rand() % nMapWidth));
+	Enemies[id]->set_Y((rand() % nMapHeight));
+	Enemies[id]->set_tEnemyMove(chrono::system_clock::now());
+	Enemies[id]->set_tStrike(chrono::system_clock::now());
 
 
+	//check boundaries
+	if (Enemies[id]->get_X() < 2)
+		Enemies[id]->set_X(2);
+	else if (Enemies[id]->get_X() > (nMapWidth - 2))
+		Enemies[id]->set_X(nMapWidth - 2);
+
+	if (Enemies[id]->get_Y() < 2)
+		Enemies[id]->set_Y(2);
+	else if (Enemies[id]->get_Y() > (nMapHeight - 2))
+		Enemies[id]->set_Y(nMapHeight - 2);
+
+	CurrentSpawned++;
+	tNewSpawn = chrono::system_clock::now();
 }
 
 void LoadItems()
@@ -821,7 +890,7 @@ void LoadItems()
 	}
 }
 
-void PlayerPickup(int item_pickup, Item* item)
+void PlayerPickup(int item_pickup, Item* item) //allows item to have appropriate effect based on type
 {
 	if (item_pickup == 1) //healthpack
 	{
@@ -829,10 +898,10 @@ void PlayerPickup(int item_pickup, Item* item)
 	}
 	else if (item_pickup == 2) //weapon
 	{
-		wname = item->get_name();
-		damage = item->get_damage();
-		capacity = item->get_capacity();
-		reload = item->get_reload();
+		if (WeaponInventory[0]->get_name() == L"Null")
+			WeaponInventory[0] = item;
+		else
+			WeaponInventory[1] = item;
 	}
 
 }
@@ -841,9 +910,9 @@ void ReloadMap()
 {
 	map = map_copy;
 
-	for (int i = 0; i < 16; i++)
-		for (int j = 0; j < 16; j++)
-			if (items[i][j] == 0)
+	for (int i = 0; i < nMapWidth; i++)
+		for (int j = 0; j < nMapHeight; j++)
+			if (items[i][j] == 0 && map[itemPosition[i][j]] != '#')
 				map[itemPosition[i][j]] = '.';
 }
 
@@ -851,28 +920,28 @@ void PlaceItem(int x, int y, Type type)
 {
 	itemPosition[x][y] = (nMapWidth * y) + x;
 
-	if (type == Healthpack)
+	if (type == Healthpack) //1
 	{
-		items[x][y] = 1;
 		itemTypes[x][y] = Item::Create("HealthPack");
+		items[x][y] = itemTypes[x][y]->pickup();
 	}
-	else if (type == Weapon)
+	else if (type == Weapon) //2
 	{
-		items[x][y] = 2;
 		itemTypes[x][y] = Item::Create("Weapon");
-		itemTypes[x][y]->set_weapon("Pistol");
+		itemTypes[x][y]->ChangeState(itemTypes[x][y], Item::Pistol);
+		items[x][y] = itemTypes[x][y]->pickup();
 	}
-	else if (type == Special)
-		items[x][y] = 3;
-	else if (type == Ammo)
-		items[x][y] = 4;
+	else if (type == Special) //3
+		items[x][y] = itemTypes[x][y]->pickup();
+	else if (type == Ammo) //4
+		items[x][y] = itemTypes[x][y]->pickup();
 
 }
 
 bool SearchItems(int currpos, int &x, int &y)
 {
-	for (int i = 0; i < 16; i++)
-		for (int j = 0; j < 16; j++)
+	for (int i = 0; i < nMapWidth; i++)
+		for (int j = 0; j < nMapHeight; j++)
 		{
 			if ((currpos == itemPosition[i][j]) && (items[i][j] != 0))
 			{
@@ -900,4 +969,11 @@ void PlaceAllItems()
 				PlaceItem(x, y, Weapon);
 		}
 	}
+}
+
+int FindHitEnemyID(int x, int y)
+{
+	for (int id = 0; id < CurrentSpawned; id++)
+		if (Enemies[id]->get_X() == x && Enemies[id]->get_Y() == y)
+			return id;
 }

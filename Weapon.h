@@ -4,19 +4,20 @@ class Weapon : public Item
 {
 public:
 	Weapon() {}
-	~Weapon() {}
+	virtual ~Weapon() {}
+
+	void ChangeState(Item*&, Weapon_Type);
 
 	virtual int pickup();
-	virtual void reloadable();
 	void set_weapon(string type);
-	wstring get_name();
-	int get_damage();
-	int get_capacity();
-	int get_reload();
+	virtual wstring get_name();
+	virtual int get_damage();
+	virtual int get_capacity();
+	virtual int get_reload();
 
+protected:
 	wstring name = L"Null";
 	int damage = 0;
 	int capacity = 0;
 	int reload = 0;
-
 };
