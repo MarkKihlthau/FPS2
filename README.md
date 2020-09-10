@@ -11,3 +11,5 @@ ease (you will have to modify a single line of code).
 To run simply make sure your console size is set to 120x40, as that is
 the only resolution that is currently supported.
 
+![Gameplay Demo](General_Demo.gif)
+
