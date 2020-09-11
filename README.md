@@ -13,11 +13,11 @@ the only resolution that is currently supported.
 
 # How to Play
 
-W, A, S, D - move forward, left, backward, right\n
-Q, E - strafe left, strafe right\n
-R - reload equipped weapon\n
-F - switch weapons (there are two inventory slots)\n
-Space - fire weapon\n
+W, A, S, D - move forward, left, backward, right  
+Q, E - strafe left, strafe right  
+R - reload equipped weapon  
+F - switch weapons (there are two inventory slots)  
+Space - fire weapon  
 
 Simply use your tactical map to identify the ghosts (the X's you see). If you reach 50 kills you will acquire the Super Pistol which kills the ghosts in a single shot. 
 
@@ -27,10 +27,10 @@ If you want to draw your own map you can! The game map is only a string and the 
 Just change the line "wifstream file("Map.txt");" to read from the text file where you drew your map. 
 When drawing the map follow this key:
 
-'#' - wall\n
-'.' - floor\n
-'W' - Weapon (currently, this will automatically create a 9mm pistol)\n
-'H' - Healthpack\n
+'#' - wall  
+'.' - floor  
+'W' - Weapon (currently, this will automatically create a 9mm pistol)  
+'H' - Healthpack  
 
 ![Gameplay Demo](General_Demo.gif)
 
