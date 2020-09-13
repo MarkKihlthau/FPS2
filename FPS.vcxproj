@@ -119,7 +119,6 @@
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="HealthPack.h" />
     <ClInclude Include="Item.h" />
-    <ClInclude Include="ItemClient.h" />
     <ClInclude Include="Pistol.h" />
     <ClInclude Include="Special.h" />
     <ClInclude Include="SuperPistolState.h" />

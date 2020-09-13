@@ -41,9 +41,6 @@
     <ClInclude Include="Ammo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ItemClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Enemy.h">
       <Filter>Header Files</Filter>
     </ClInclude>

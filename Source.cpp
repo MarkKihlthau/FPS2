@@ -74,7 +74,7 @@ wstring wname = L"";
 int damage = 0;
 int capacity = 0;
 int reload = 0;
-int kill_count = 49;
+int kill_count = 0;
 Item* WeaponInventory[2] = { Item::Create("Weapon"), Item::Create("Weapon") };
 Item* WeaponInHand = Item::Create("Weapon");
 int WeaponNumber;
@@ -94,12 +94,13 @@ int main()
 	srand(time(NULL)); //For random number generation
 
 	//Load map
-	wifstream file("Map2.txt");
+	wifstream file("Map.txt");
 	wstring line;
 	wstring file_contents;
 	while (getline(file, line))
 	{
-		nMapWidth = line.length();
+		if (nMapWidth < line.length())
+			nMapWidth = line.length();
 		file_contents += line;
 		nMapHeight++;
 	}
@@ -628,7 +629,7 @@ void UserInterface(wchar_t* screen)
 void WeaponArt(wchar_t* screen)
 {
 	
-	if (wname == L"9mm Pistol") //ready pistol
+	if (wname == L"9mm Pistol" || wname == L"Super Pistol") //ready pistol
 	{
 		short shadeHand = 0x2588;
 		short shadeGun = 0x2592;
@@ -688,7 +689,7 @@ void WeaponArt(wchar_t* screen)
 			screen[i] = shadeGun;
 	}
 	
-	if (wname == L"9mm Pistol" && !ReadyShot && 
+	if ((wname == L"9mm Pistol" || wname == L"Super Pistol") && !ReadyShot &&
 		(tAnimation - tBegin) + chrono::milliseconds(300) <= chrono::system_clock::now() - tBegin) //fired pistol
 	{
 		short shadeHand = 0x2588;
@@ -788,6 +789,7 @@ void WeaponArt(wchar_t* screen)
 		screen[4741 - 2520] = '+';
 	}
 
+	/*
 	if (wname == L"Super Pistol")
 	{
 		wstring art;
@@ -799,7 +801,7 @@ void WeaponArt(wchar_t* screen)
 		art += L"|              |";
 		art += L"|              |";
 		art += L"+--------------+";
-	}
+	}*/
 	
 }
 

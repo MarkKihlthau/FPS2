@@ -19,8 +19,8 @@ public:
 private:
 	wstring name = L"9mm Pistol";
 	int damage = 50;
-	int capacity = 48;
-	int reload = 16;
+	int capacity = 16;
+	int reload = 48;
 };
 
 void PistolState::ChangeState(Item*& state, Weapon_Type type)
