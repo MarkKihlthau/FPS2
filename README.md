@@ -9,7 +9,7 @@ ease (you will have to modify a single line of code).
 
 
 To run simply make sure your console size is set to 120x40, as that is
-the only resolution that is currently supported.
+the only resolution that is currently supported. Also, make sure you're using the unicode character set.
 
 # How to Play
 
