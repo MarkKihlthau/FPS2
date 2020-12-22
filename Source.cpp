@@ -11,6 +11,8 @@
 #include "Item.h"
 #include "Weapon.h"
 #include "Enemy.h"
+#include "Map.h"
+
 using namespace std;
 
 enum Type {Healthpack, Weapon, Special, Ammo};
@@ -22,8 +24,14 @@ float fPlayerX = 3.0f; //player X position
 float fPlayerY = 14.0f; //player Y position
 float fPlayerA = 1.5f; //player look Angle
 
-int nMapHeight = 0; //Map Size
-int nMapWidth = 0;
+//Map* Map::instance = 0;
+Map* m = m->getInstance();
+int nMapHeight = m->get_nMapHeight();
+int nMapWidth = m->get_nMapWidth();
+wstring map = m->get_map(); //string that holds the current map
+wstring map_copy = map; //string that holds a copy of the original map
+
+//wstring minimap; //string that holds minimap display
 
 const float fFOV = 3.14159 / 4; //field of view
 const float fDepth = 16.0f;
@@ -79,9 +87,6 @@ Item* WeaponInventory[2] = { Item::Create("Weapon"), Item::Create("Weapon") };
 Item* WeaponInHand = Item::Create("Weapon");
 int WeaponNumber;
 
-wstring map; //string that holds the map
-wstring map_copy; //string that holds a copy of the original map
-//wstring minimap; //string that holds minimap display
 
 int main()
 {
@@ -92,20 +97,6 @@ int main()
 	DWORD dwBytesWritten = 0;
 
 	srand(time(NULL)); //For random number generation
-
-	//Load map
-	wifstream file("Map.txt");
-	wstring line;
-	wstring file_contents;
-	while (getline(file, line))
-	{
-		if (nMapWidth < line.length())
-			nMapWidth = line.length();
-		file_contents += line;
-		nMapHeight++;
-	}
-	map = file_contents;
-	map_copy = map;
 
 	PlaceAllItems(); //places all items on the map based on map string
 
@@ -807,44 +798,7 @@ void WeaponArt(wchar_t* screen)
 
 void MoveEnemy(int id)
 {
-	int moveX = (rand() % 2);
-	int moveY = (rand() % 2);
-	int flip = (rand() % 2);
-
-	if (flip == 0)
-	{
-		Enemies[id]->set_X(Enemies[id]->get_X() + moveX);
-		Enemies[id]->set_Y(Enemies[id]->get_Y() + moveY);
-
-		if (map[(nMapWidth * Enemies[id]->get_Y()) + Enemies[id]->get_X()] == '#') //check if in wall
-		{
-			Enemies[id]->set_X(Enemies[id]->get_X() - moveX);
-			Enemies[id]->set_Y(Enemies[id]->get_Y() - moveY);
-		}
-	}
-	else
-	{
-		Enemies[id]->set_X(Enemies[id]->get_X() - moveX);
-		Enemies[id]->set_Y(Enemies[id]->get_Y() - moveY);
-
-		if (map[(nMapWidth * Enemies[id]->get_Y()) + Enemies[id]->get_X()] == '#') //check if in wall
-		{
-			Enemies[id]->set_X(Enemies[id]->get_X() + moveX);
-			Enemies[id]->set_Y(Enemies[id]->get_Y() + moveY);
-		}
-	}
-
-	//boundary check
-	if (Enemies[id]->get_X() < 2)
-		Enemies[id]->set_X(2);
-	else if (Enemies[id]->get_X() > (nMapWidth - 2))
-		Enemies[id]->set_X(nMapWidth - 2);
-
-	if (Enemies[id]->get_Y() < 2)
-		Enemies[id]->set_Y(2);
-	else if (Enemies[id]->get_Y() > (nMapHeight - 2))
-		Enemies[id]->set_Y(nMapHeight - 2);
-
+	Enemies[id]->move((int)fPlayerX, (int)fPlayerY);
 }
 
 void EnemyMoveHandler(int id) 

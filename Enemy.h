@@ -1,6 +1,7 @@
 #pragma once
 #include <stdlib.h>
-#include <chrono> 
+#include <chrono>
+#include "BehaviorDelegate.h"
 using namespace std;
 
 class Enemy
@@ -82,6 +83,11 @@ public:
 		return tEnemyMove;
 	}
 
+	void move(int playerX, int playerY)
+	{
+		_b->move(X_position, Y_position, playerX, playerY);
+	}
+
 private:
 	int id;
 	int health;
@@ -91,4 +97,6 @@ private:
 	bool living;
 	chrono::time_point<chrono::system_clock> tStrike;
 	chrono::time_point<chrono::system_clock> tEnemyMove;
+
+	BehaviorDelegate* _b = new AggressiveBehavior(); //switch between AggressiveBehavior, ZombieBehavior, or PassiveBehavior
 };
